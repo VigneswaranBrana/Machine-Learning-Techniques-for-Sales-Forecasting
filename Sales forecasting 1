@@ -1,0 +1,2303 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Machine Learning Techniques for Sales Forecasting"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Importing Libraries"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "%pip install xgboost\n",
+    "%pip install statsmodels\n",
+    "%pip install pandas numpy statsmodels\n",
+    "%pip install tensorflow"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "import statsmodels.api as sm\n",
+    "import scipy.stats as stats\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.linear_model import LinearRegression\n",
+    "from sklearn.linear_model import LogisticRegression\n",
+    "from sklearn.svm import SVC\n",
+    "from sklearn.tree import DecisionTreeRegressor\n",
+    "from sklearn.tree import plot_tree\n",
+    "from sklearn.ensemble import RandomForestRegressor\n",
+    "from sklearn.linear_model import SGDRegressor\n",
+    "from sklearn.ensemble import ExtraTreesRegressor\n",
+    "from sklearn.linear_model import Ridge\n",
+    "from xgboost import XGBRegressor\n",
+    "from sklearn.linear_model import Lasso\n",
+    "from statsmodels.tsa.arima.model import ARIMA\n",
+    "from sklearn.linear_model import BayesianRidge\n",
+    "from sklearn.neighbors import KNeighborsRegressor\n",
+    "from sklearn.ensemble import AdaBoostRegressor\n",
+    "from sklearn.metrics import mean_squared_error\n",
+    "from sklearn.metrics import mean_absolute_error\n",
+    "from sklearn.metrics import mean_squared_error\n",
+    "from sklearn.metrics import r2_score\n",
+    "import panel as pn\n",
+    "pn.extension()\n",
+    "import hvplot.pandas\n",
+    "from statsmodels.tsa.stattools import adfuller\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Importing Datasets & Read all csv files\n",
+    "\n",
+    "01. item_categories.csv - \n",
+    "    item_category_name, \n",
+    "    item_category_id\n",
+    "\n",
+    "02. items.csv - \n",
+    "    item_name, \n",
+    "    item_id, \n",
+    "    category_id\n",
+    "\n",
+    "03. sales_train.csv - \n",
+    "    date, \n",
+    "    date_block_num, \n",
+    "    shop_id, \n",
+    "    item_id, \n",
+    "    item_price, \n",
+    "    item_cnt_day\n",
+    "\n",
+    "04. shops.csv - \n",
+    "    shop_name, \n",
+    "    shop_id\n",
+    "\n",
+    "05. test.csv - \n",
+    "    ID, \n",
+    "    shop_id, \n",
+    "    item_id"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#importing data\n",
+    "item_categories = pd.read_csv('./data-set/item_categories.csv')\n",
+    "items = pd.read_csv('./data-set/items.csv')\n",
+    "sales_train = pd.read_csv('./data-set/sales_train.csv')\n",
+    "shops = pd.read_csv('./data-set/shops.csv')\n",
+    "test = pd.read_csv('./data-set/test.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking the shape of the data\n",
+    "print(\"Shape of item_categories:\", item_categories.shape)\n",
+    "print(\"Shape of items:\", items.shape)\n",
+    "print(\"Shape of sales_train:\", sales_train.shape)\n",
+    "print(\"Shape of shops:\", shops.shape)\n",
+    "print(\"Shape of test:\", test.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking the columns of the data\n",
+    "print(\"\\n\\nColumns of item_categories:\\n\")\n",
+    "print(item_categories.info())\n",
+    "\n",
+    "print(\"-----------------------------------------------------\")\n",
+    "\n",
+    "print(\"\\n\\nColumns of items:\\n\")\n",
+    "print(items.info())\n",
+    "\n",
+    "print(\"-----------------------------------------------------\")\n",
+    "\n",
+    "print(\"\\n\\nColumns of sales_train:\\n\")\n",
+    "print(sales_train.info())\n",
+    "\n",
+    "print(\"-----------------------------------------------------\")\n",
+    "\n",
+    "print(\"\\n\\nColumns of shops:\\n\")\n",
+    "print(shops.info())\n",
+    "\n",
+    "print(\"-----------------------------------------------------\")\n",
+    "\n",
+    "print(\"\\n\\nColumns of test:\\n\")\n",
+    "print(test.info())\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking the head and tail of the data\n",
+    "\n",
+    "print(\"\\n\\nHead of item_categories:\\n\")\n",
+    "print(item_categories.head())\n",
+    "\n",
+    "print(\"\\n\\nTail of item_categories:\\n\")\n",
+    "print(item_categories.tail())\n",
+    "\n",
+    "print(\"-----------------------------------------------------\")\n",
+    "\n",
+    "print(\"\\n\\nHead of items:\\n\")\n",
+    "print(items.head())\n",
+    "\n",
+    "print(\"\\n\\nTail of items:\\n\")\n",
+    "print(items.tail())\n",
+    "\n",
+    "print(\"-----------------------------------------------------\")\n",
+    "\n",
+    "print(\"\\n\\nHead of sales_train:\\n\")\n",
+    "print(sales_train.head())\n",
+    "\n",
+    "print(\"\\n\\nTail of sales_train:\\n\")\n",
+    "print(sales_train.tail())\n",
+    "\n",
+    "print(\"-----------------------------------------------------\")\n",
+    "\n",
+    "print(\"\\n\\nHead of shops:\\n\")\n",
+    "print(shops.head())\n",
+    "\n",
+    "print(\"\\n\\nTail of shops:\\n\")\n",
+    "print(shops.tail())\n",
+    "\n",
+    "print(\"-----------------------------------------------------\")\n",
+    "\n",
+    "print(\"\\n\\nHead of test:\\n\")\n",
+    "print(test.head())\n",
+    "\n",
+    "print(\"\\n\\nTail of test:\\n\")\n",
+    "print(test.tail())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Data Preprocessing & Feature Engineering"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#merging the data for better understand the data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Merge sales_train.csv with items.csv on the \"item_id\" column\n",
+    "sales_with_items = sales_train.merge(items, on='item_id', how='left')\n",
+    "print(\"\\n\\nHead of sales_with_items:\\n\")\n",
+    "print(sales_with_items.head(20))\n",
+    "print(sales_with_items.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Merge the result with item_categories.csv on the \"category_id\" \n",
+    "sales_with_items_and_categories = sales_with_items.merge(item_categories, right_on='item_category_id', left_on='category_id', how='left')\n",
+    "print(\"\\n\\nHead of sales_with_items_and_categories:\\n\")\n",
+    "print(sales_with_items_and_categories.head(20))\n",
+    "print(sales_with_items_and_categories.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Check if the two columns are the same\n",
+    "if sales_with_items_and_categories['item_category_id'].equals(sales_with_items_and_categories['category_id']):\n",
+    "    # If they are the same, drop one of the columns\n",
+    "    sales_with_items_and_categories.drop(columns=['item_category_id'], inplace=True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"\\n\\nHead of sales_with_items_and_categories:\\n\")\n",
+    "print(sales_with_items_and_categories.head(20))\n",
+    "print(sales_with_items_and_categories.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Merge the result with shops.csv on the \"shop_id\" \n",
+    "final_dataset = sales_with_items_and_categories.merge(shops, on='shop_id', how='left')\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checks the columns of the final dataset\n",
+    "print(\"\\n\\nColumns of final_dataset:\\n\")\n",
+    "print(final_dataset.info())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#prints the date and date_block_num column to check whether they are related\n",
+    "columns_to_print = ['date', 'date_block_num']\n",
+    "print(final_dataset[columns_to_print])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Rename the column\n",
+    "final_dataset.rename(columns={'date_block_num': 'month_num'}, inplace=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Rename the column\n",
+    "final_dataset.rename(columns={'item_cnt_day': 'item_cnt_month'}, inplace=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checks the columns of the final dataset\n",
+    "print(\"\\n\\nColumns of final_dataset:\\n\")\n",
+    "print(final_dataset.info())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#export the final dataset to csv file\n",
+    "final_dataset.to_csv('./data-set/output/final_dataset_without_cleaning.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Data Cleaning\n",
+    "\n",
+    "#checking for missing values\n",
+    "print(\"\\n\\nMissing values in final_dataset:\\n\")\n",
+    "print(final_dataset.isnull().sum())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checking for null values\n",
+    "print(\"\\n\\nNull values in final_dataset:\\n\")\n",
+    "print(final_dataset.isnull().sum())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#handles the missing values in final_dataset\n",
+    "final_dataset['item_name'].fillna('Unknown', inplace=True)\n",
+    "final_dataset['item_category_name'].fillna('Unknown', inplace=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#removes duplicates rows in final_dataset\n",
+    "final_dataset.drop_duplicates(inplace=True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checks and solves the data type of the columns\n",
+    "print(\"\\n\\nData types of final_dataset:\\n\")\n",
+    "print(final_dataset.dtypes)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# #seems like item_cnt_month should be int64\n",
+    "final_dataset['item_cnt_month'] = final_dataset['item_cnt_month'].astype('int64')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.dtypes)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#prints item_cnt_month column to check whether it is int64\n",
+    "print(final_dataset['item_cnt_month'].head(30))   "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#removes -1 and 307980 from item_cnt_month column because it is an outlier\n",
+    "#it is not possible to sell -1 and 307980 items in a day because 307980 is the total number of items sold in a day\n",
+    "#which means that the data is incorrect\n",
+    "#and -1 is not possible\n",
+    "\n",
+    "final_dataset = final_dataset[(final_dataset['item_cnt_month'] > 0) & (final_dataset['item_cnt_month'] < 307980)]\n",
+    "\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#outlier treatment\n",
+    "\n",
+    "#checks for outliers in the item_cnt_month column\n",
+    "print(\"\\n\\nOutliers in item_cnt_month column:\\n\")\n",
+    "print(final_dataset[final_dataset['item_cnt_month'] > 1000])\n",
+    "\n",
+    "#removes the outliers in the item_cnt_month column\n",
+    "final_dataset = final_dataset[final_dataset['item_cnt_month'] < 1000]\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#deal with the incorrect data in the item_price column\n",
+    "#the item_price should not be negative\n",
+    "#the item_price should not be zero\n",
+    "#the item_price should not be greater than 100000\n",
+    "\n",
+    "final_dataset = final_dataset[(final_dataset['item_price'] > 0) & (final_dataset['item_price'] < 100000)]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#handles special characters and formatting in the data set\n",
+    "final_dataset['item_name'] = final_dataset['item_name'].str.replace('[^A-Za-z0-9А-Яа-я]+', ' ')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#removes the noise in the item_name column\n",
+    "final_dataset['item_name'] = final_dataset['item_name'].str.replace('  ', ' ')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.head())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#creates a new column called revenue\n",
+    "final_dataset['revenue'] = final_dataset['item_cnt_month'] * final_dataset['item_price']\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#creates a new column called revenue_per_item\n",
+    "final_dataset['revenue_per_item'] = final_dataset['revenue'] / final_dataset['item_cnt_month']\n",
+    "\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checks whether the revenue_per_item column and revenue column are the same\n",
+    "\n",
+    "if final_dataset['revenue_per_item'].equals(final_dataset['revenue']):\n",
+    "    # If they are the same, drop one of the columns\n",
+    "    final_dataset.drop(columns=['revenue_per_item'], inplace=True)\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#creates a new column called date num\n",
+    "final_dataset['date_num'] = final_dataset['date'].str[:2]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#creates a new column called year num\n",
+    "final_dataset['year_num'] = final_dataset['date'].str[6:]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(final_dataset.shape)\n",
+    "print(final_dataset.info())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# rearrange the columns\n",
+    "final_dataset = final_dataset[['date', 'date_num', 'year_num', 'month_num', 'shop_id', 'shop_name', 'item_id', 'item_name', 'category_id', 'item_category_name', 'item_price', 'item_cnt_month', 'revenue']]\n",
+    "\n",
+    "print(final_dataset.shape)\n",
+    "print(final_dataset.info())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#data profiling\n",
+    "\n",
+    "#descriptive statistics\n",
+    "print(\"\\n\\nDescriptive statistics of final_dataset:\\n\")\n",
+    "print(final_dataset.describe())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#data enrichment\n",
+    "\n",
+    "#creates a new column called month name\n",
+    "final_dataset['month_name'] = final_dataset['month_num'].replace({0: 'January', 1: 'February', 2: 'March', 3: 'April', 4: 'May', 5: 'June', 6: 'July', 7: 'August', 8: 'September', 9: 'October', 10: 'November', 11: 'December', 12: 'January', 13: 'February', 14: 'March', 15: 'April', 16: 'May', 17: 'June', 18: 'July', 19: 'August', 20: 'September', 21: 'October', 22: 'November', 23: 'December', 24: 'January', 25: 'February', 26: 'March', 27: 'April', 28: 'May', 29: 'June', 30: 'July', 31: 'August', 32: 'September', 33: 'October'})\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#removes month_num column\n",
+    "\n",
+    "final_dataset.drop(columns=['month_num'], inplace=True)\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#rearange the columns\n",
+    "\n",
+    "final_dataset = final_dataset[['date', 'date_num', 'month_name', 'year_num', 'shop_id', 'shop_name', 'item_id', 'item_name', 'category_id', 'item_category_name', 'item_price', 'item_cnt_month', 'revenue']]\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#data binning\n",
+    "\n",
+    "#found the bins using the following code\n",
+    "print(final_dataset['item_price'].max())\n",
+    "print(final_dataset['item_price'].min())\n",
+    "\n",
+    "#creates a new column called price range\n",
+    "final_dataset['price_range'] = pd.cut(final_dataset['item_price'], bins=[-1, 100, 200, 300, 400, 500, 600, 700, 800, 900, 100000], labels=['0-100', '100-200', '200-300', '300-400', '400-500', '500-600', '600-700', '700-800', '800-900', '900-100000'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#log transformation\n",
+    "\n",
+    "#creates a new column called log_revenue\n",
+    "final_dataset['log_revenue'] = np.log(final_dataset['revenue'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#encoding\n",
+    "\n",
+    "#encodes the year_num column to 0, 1, 2\n",
+    "\n",
+    "final_dataset['year_num'] = final_dataset['year_num'].replace({'2013': 0, '2014': 1, '2015': 2})\n",
+    "\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#grouping and aggregation\n",
+    "\n",
+    "#grouping the data set by shop_id and year_num and aggregating the item_cnt_month column using sum\n",
+    "\n",
+    "grouped_by_shop_id_and_year_num = final_dataset.groupby(['shop_id', 'year_num']).agg({'item_cnt_month': 'sum'})\n",
+    "\n",
+    "print(\"\\n\\nHead of grouped_by_shop_id_and_year_num:\\n\")\n",
+    "print(grouped_by_shop_id_and_year_num.head(60))\n",
+    "print(grouped_by_shop_id_and_year_num.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#creates a new column called scaled_revenue\n",
+    "final_dataset['scaled_revenue'] = (final_dataset['revenue'] - final_dataset['revenue'].min()) / (final_dataset['revenue'].max() - final_dataset['revenue'].min())\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#change month_name column to numeric\n",
+    "\n",
+    "final_dataset['month_name'] = final_dataset['month_name'].replace({'January': 1, 'February': 2, 'March': 3, 'April': 4, 'May': 5, 'June':6, 'July': 7, 'August': 8, 'September': 9, 'October': 10, 'November':11, 'December': 12})\n",
+    "\n",
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Data Exploration & Analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "#correlation\n",
+    "\n",
+    "numeric_columns = final_dataset.select_dtypes(include=['number'])\n",
+    "print(\"\\n\\nCorrelation of final_dataset:\\n\")\n",
+    "print(numeric_columns.corr())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#checks for missing values\n",
+    "print(\"\\n\\nMissing values in final_dataset:\\n\")\n",
+    "print(final_dataset.isnull().sum())\n",
+    "\n",
+    "#checks for null values\n",
+    "print(\"\\n\\nNull values in final_dataset:\\n\")\n",
+    "print(final_dataset.isnull().sum())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Descriptive analytics\n",
+    "\n",
+    "# Summary Statistics\n",
+    "print(\"\\nDescriptive statistics of final_dataset:\")\n",
+    "print(final_dataset.describe())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#seasonality analysis\n",
+    "\n",
+    "grouped_by_month_name = final_dataset.groupby(['month_name']).agg({'item_cnt_month': 'sum'})\n",
+    "\n",
+    "print(\"\\n\\nHead of grouped_by_month_name:\\n\")\n",
+    "print(grouped_by_month_name)\n",
+    "print(grouped_by_month_name.shape)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#performing seasonal decomposition\n",
+    "decomposition = sm.tsa.seasonal_decompose(grouped_by_month_name, model='additive', period=1)\n",
+    "\n",
+    "#plotting the seasonal decomposition\n",
+    "fig = decomposition.plot()\n",
+    "plt.show()\n",
+    "\n",
+    "#plotting the item_cnt_month column\n",
+    "plt.figure(figsize=(20, 10))\n",
+    "plt.plot(final_dataset['item_cnt_month'])\n",
+    "plt.title('Item Count Per Month')\n",
+    "plt.xlabel('Month')\n",
+    "plt.ylabel('Item Count')\n",
+    "plt.show()\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#regulatory analytics\n",
+    "\n",
+    "grouped_by_shop_id_and_year_num = final_dataset.groupby(['shop_id', 'year_num']).agg({'item_cnt_month': 'sum'})\n",
+    "\n",
+    "print(\"\\n\\nHead of grouped_by_shop_id_and_year_num:\\n\")\n",
+    "print(grouped_by_shop_id_and_year_num.head(60))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Variable Identification\n",
+    "\n",
+    "# Identify numerical and categorical variables\n",
+    "numerical_vars = final_dataset.select_dtypes(include=['int64', 'float64']).columns\n",
+    "categorical_vars = final_dataset.select_dtypes(include=['object', 'category']).columns\n",
+    "\n",
+    "# Print the list of numerical and categorical variables\n",
+    "print(\"Numerical Variables:\")\n",
+    "print(numerical_vars)\n",
+    "\n",
+    "print(\"\\nCategorical Variables:\")\n",
+    "print(categorical_vars)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# univariate analysis\n",
+    "\n",
+    "for column in final_dataset.columns:\n",
+    "    variable_type = final_dataset[column].dtype\n",
+    "    \n",
+    "    summary_stats = final_dataset[column].describe()\n",
+    "    \n",
+    "    plt.figure(figsize=(10, 6))\n",
+    "    \n",
+    "    # For numerical variables, create a histogram\n",
+    "    if variable_type in ['int64', 'float64']:\n",
+    "        sns.histplot(data=final_dataset, x=column, kde=True)\n",
+    "        plt.title(f'Distribution of {column}')\n",
+    "        plt.xlabel(column)\n",
+    "        plt.ylabel('Frequency')\n",
+    "    \n",
+    "    # For categorical variables, create a bar plot\n",
+    "    else:\n",
+    "        sns.countplot(data=final_dataset, x=column)\n",
+    "        plt.title(f'Counts of {column}')\n",
+    "        plt.xlabel(column)\n",
+    "        plt.ylabel('Count')\n",
+    "    \n",
+    "    plt.show()\n",
+    "    \n",
+    "    # Print summary statistics\n",
+    "    print(f\"Summary Statistics for {column}:\")\n",
+    "    print(summary_stats)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#bivariate analysis\n",
+    "\n",
+    "#can analysis by changing var1 and var2\n",
+    "var1 = 'item_price'\n",
+    "var2 = 'item_cnt_month'\n",
+    "\n",
+    "var1_type = final_dataset[var1].dtype\n",
+    "var2_type = final_dataset[var2].dtype\n",
+    "\n",
+    "# Scatter Plot for Numerical vs. Numerical\n",
+    "if var1_type in ['int64', 'float64'] and var2_type in ['int64', 'float64']:\n",
+    "    plt.figure(figsize=(10, 6))\n",
+    "    sns.scatterplot(data=final_dataset, x=var1, y=var2)\n",
+    "    plt.title(f'Scatter Plot: {var1} vs. {var2}')\n",
+    "    plt.xlabel(var1)\n",
+    "    plt.ylabel(var2)\n",
+    "    plt.grid(True)\n",
+    "    plt.show()\n",
+    "\n",
+    "# Box Plot for Categorical vs. Numerical\n",
+    "elif var1_type in ['object', 'category'] and var2_type in ['int64', 'float64']:\n",
+    "    plt.figure(figsize=(10, 6))\n",
+    "    sns.boxplot(data=final_dataset, x=var1, y=var2)\n",
+    "    plt.title(f'Box Plot: {var1} vs. {var2}')\n",
+    "    plt.xlabel(var1)\n",
+    "    plt.ylabel(var2)\n",
+    "    plt.grid(True)\n",
+    "    plt.show()\n",
+    "\n",
+    "# Bar Plot for Categorical vs. Categorical\n",
+    "elif var1_type in ['object', 'category'] and var2_type in ['object', 'category']:\n",
+    "    crosstab = pd.crosstab(final_dataset[var1], final_dataset[var2])\n",
+    "    crosstab.plot(kind='bar', stacked=True, figsize=(10, 6))\n",
+    "    plt.title(f'Bar Plot: {var1} vs. {var2}')\n",
+    "    plt.xlabel(var1)\n",
+    "    plt.ylabel('Count')\n",
+    "    plt.grid(True)\n",
+    "    plt.show()\n",
+    "\n",
+    "# Print correlation for Numerical vs. Numerical\n",
+    "if var1_type in ['int64', 'float64'] and var2_type in ['int64', 'float64']:\n",
+    "    correlation = final_dataset[[var1, var2]].corr().iloc[0, 1]\n",
+    "    print(f'Correlation between {var1} and {var2}: {correlation:.2f}')\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Exploratory Data Analysis (EDA)\n",
+    "\n",
+    "print(\"Dataset Overview:\")\n",
+    "print(final_dataset.info())\n",
+    "\n",
+    "print(\"\\nSummary Statistics for Numerical Variables:\")\n",
+    "print(final_dataset.describe())\n",
+    "\n",
+    "print(\"\\nMissing Values:\")\n",
+    "print(final_dataset.isnull().sum())\n",
+    "\n",
+    "numerical_columns = ['month_name', 'year_num', 'shop_id', 'item_id', 'category_id', 'item_price', 'item_cnt_month', 'revenue', 'log_revenue', 'scaled_revenue']\n",
+    "\n",
+    "for column in numerical_columns:\n",
+    "    plt.figure(figsize=(8, 4))\n",
+    "    sns.histplot(data=final_dataset, x=column, kde=True, bins=20)\n",
+    "    plt.title(f'Distribution of {column}')\n",
+    "    plt.xlabel(column)\n",
+    "    plt.ylabel('Frequency')\n",
+    "    plt.show()\n",
+    "\n",
+    "# Visualize relationships between variables with a correlation matrix for numerical variables\n",
+    "correlation_matrix = final_dataset[numerical_columns].corr()\n",
+    "plt.figure(figsize=(10, 8))\n",
+    "sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=\".2f\")\n",
+    "plt.title(\"Correlation Heatmap for Numerical Variables\")\n",
+    "plt.show()\n",
+    "\n",
+    "# Explore categorical variables with bar plots\n",
+    "categorical_columns = ['shop_name', 'item_name', 'item_category_name', 'price_range']\n",
+    "\n",
+    "for column in categorical_columns:\n",
+    "    plt.figure(figsize=(10, 6))\n",
+    "    sns.countplot(data=final_dataset, x=column)\n",
+    "    plt.title(f'Counts of {column}')\n",
+    "    plt.xlabel(column)\n",
+    "    plt.ylabel('Count')\n",
+    "    plt.xticks(rotation=90)\n",
+    "    plt.show()\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#inferential analysis\n",
+    "\n",
+    "np.random.seed(42)\n",
+    "data = np.random.normal(loc=70, scale=10, size=100)\n",
+    "\n",
+    "# Create a DataFrame from the generated data\n",
+    "df = pd.DataFrame({'measurement': data})\n",
+    "\n",
+    "# Calculate the sample mean and standard deviation\n",
+    "sample_mean = df['measurement'].mean()\n",
+    "sample_std = df['measurement'].std()\n",
+    "\n",
+    "# Define a hypothetical population mean for comparison\n",
+    "population_mean = 75 \n",
+    "\n",
+    "# Perform a t-test to compare the sample mean with the population mean\n",
+    "t_statistic, p_value = stats.ttest_1samp(df['measurement'], population_mean)\n",
+    "\n",
+    "# Print results\n",
+    "print(f\"Sample Mean: {sample_mean:.2f}\")\n",
+    "print(f\"Sample Standard Deviation: {sample_std:.2f}\")\n",
+    "print(f\"Population Mean: {population_mean}\")\n",
+    "print(f\"T-Statistic: {t_statistic:.2f}\")\n",
+    "print(f\"P-Value: {p_value:.4f}\")\n",
+    "\n",
+    "# Determine statistical significance\n",
+    "alpha = 0.05  # Significance level (adjust as needed)\n",
+    "if p_value < alpha:\n",
+    "    print(\"Reject the null hypothesis: The sample mean is statistically different from the population mean.\")\n",
+    "else:\n",
+    "    print(\"Fail to reject the null hypothesis: There is no significant difference between the sample mean and the population mean.\")\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#qualitative analytics\n",
+    "\n",
+    "category_counts = final_dataset['item_category_name'].value_counts()\n",
+    "print(category_counts)\n",
+    "\n",
+    "cross_tab = pd.crosstab(final_dataset['shop_name'], final_dataset['item_category_name'])\n",
+    "print(cross_tab)\n",
+    "\n",
+    "category_frequency = (final_dataset['price_range'] == 'Low').sum()\n",
+    "print(f\"Frequency of 'Low' price range: {category_frequency}\")\n",
+    "\n",
+    "average_price_per_category = final_dataset.groupby('item_category_name')['item_price'].mean()\n",
+    "print(average_price_per_category)\n",
+    "\n",
+    "category_counts.plot(kind='bar', figsize=(10, 6))\n",
+    "plt.title('Item Category Counts')\n",
+    "plt.xlabel('Category')\n",
+    "plt.ylabel('Count')\n",
+    "plt.xticks(rotation=90)\n",
+    "plt.show()\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#stationarity analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Convert the date column to datetime format\n",
+    "final_dataset['date'] = pd.to_datetime(final_dataset['date'], format='%d.%m.%Y')\n",
+    "\n",
+    "monthly_data = final_dataset.groupby(final_dataset['date'].dt.to_period('M')).agg({\n",
+    "    'item_cnt_month': 'sum',\n",
+    "}).reset_index()\n",
+    "\n",
+    "def adf_test(timeseries):\n",
+    "    result = adfuller(timeseries, autolag='AIC')\n",
+    "    print('ADF Statistic:', result[0])\n",
+    "    print('p-value:', result[1])\n",
+    "    print('Critical Values:')\n",
+    "    for key, value in result[4].items():\n",
+    "        print(f'   {key}: {value}')\n",
+    "    \n",
+    "    if result[1] <= 0.05:\n",
+    "        print(\"Stationary (Reject the null hypothesis)\")\n",
+    "    else:\n",
+    "        print(\"Non-Stationary (Fail to reject the null hypothesis)\")\n",
+    "\n",
+    "item_cnt_month_series = monthly_data['item_cnt_month']\n",
+    "\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "plt.plot(item_cnt_month_series)\n",
+    "plt.title('Monthly Item Count Over Time')\n",
+    "plt.xlabel('Date')\n",
+    "plt.ylabel('Item Count')\n",
+    "plt.show()\n",
+    "\n",
+    "adf_test(item_cnt_month_series)\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "numerical_columns = final_dataset.select_dtypes(include=['number'])\n",
+    "\n",
+    "#calculating the mean, median and standard deviation for numerical variables\n",
+    "print(\"\\n\\nMean of final_dataset:\\n\")\n",
+    "print(numerical_columns.mean())\n",
+    "\n",
+    "print(\"\\n\\nMedian of final_dataset:\\n\")\n",
+    "print(numerical_columns.median())\n",
+    "\n",
+    "print(\"\\n\\nStandard Deviation of final_dataset:\\n\")\n",
+    "print(numerical_columns.std())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"\\n\\nHead of final_dataset:\\n\")\n",
+    "print(final_dataset.head(20))\n",
+    "print(final_dataset.shape)\n",
+    "print(final_dataset.info())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#export the final dataset to csv file\n",
+    "final_dataset.to_csv('./data-set/output/final_dataset_with_cleaning.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Model Development, Error Analysis & Comparison"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#prepare the data for modeling\n",
+    "df = pd.read_csv('./data-set/sales_train.csv')\n",
+    "#rename item_cnt_day column\n",
+    "df.rename(columns={'item_cnt_day': 'item_count'}, inplace=True)\n",
+    "#removes duplicates\n",
+    "df.drop_duplicates(inplace=True)\n",
+    "#outlier treatment\n",
+    "df = df[(df['item_count'] > 0) & (df['item_count'] < 307980)]\n",
+    "df = df[df['item_count'] < 1000]\n",
+    "#handles incorrect data\n",
+    "df = df[(df['item_price'] > 0) & (df['item_price'] < 100000)]\n",
+    "#converts date column to datetime format\n",
+    "df['date'] = pd.to_datetime(df['date'], format='%d.%m.%Y')\n",
+    "#convert date to year-month format\n",
+    "df['year-month'] = df['date'].dt.strftime('%Y-%m')\n",
+    "#drop date column and item_price column\n",
+    "df.drop(columns=['date', 'item_price'], inplace=True)\n",
+    "# group features\n",
+    "df_train_group = df.groupby(['year-month', 'shop_id', 'item_id']).sum().reset_index()\n",
+    "# pivot table\n",
+    "df = df_train_group.pivot_table(index=['shop_id', 'item_id'], columns='year-month', values='item_count', fill_value=0).reset_index()\n",
+    "\n",
+    "print(df.head(10))\n",
+    "print(df.shape)\n",
+    "print(df.info())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#export the final dataset to csv file\n",
+    "df.to_csv('./data-set/output/dataset_for_modeling.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Create X and y variables for train and test sets\n",
+    "X = df[df.columns[:-1]]\n",
+    "y = df[df.columns[-1]]\n",
+    "\n",
+    "\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n",
+    "\n",
+    "print(X_train.shape)\n",
+    "print(X_test.shape)\n",
+    "print(y_train.shape)\n",
+    "print(y_test.shape)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#creating evaluation metrics\n",
+    "scores_and_names = []\n",
+    "\n",
+    "# Create a function to evaluate the model\n",
+    "def evaluate_the_model(y_true, y_pred, model_name, model, index=None):\n",
+    "    if not isinstance(y_true, pd.Series):\n",
+    "        if index is None:\n",
+    "            index = range(len(y_true))\n",
+    "        y_true = pd.Series(y_true, index=index)\n",
+    "\n",
+    "    # Calculate the MAE\n",
+    "    mae = mean_absolute_error(y_true, y_pred)\n",
+    "    print(f\"MAE for {model_name}: {mae:.5f}\")\n",
+    "\n",
+    "    # Calculate the MSE\n",
+    "    mse = mean_squared_error(y_true, y_pred)\n",
+    "    print(f\"MSE for {model_name}: {mse:.5f}\")\n",
+    "\n",
+    "    # Calculate the RMSE\n",
+    "    rmse = np.sqrt(mse)\n",
+    "    print(f\"RMSE for {model_name}: {rmse:.5f}\")\n",
+    "\n",
+    "    #calculate r2 score\n",
+    "    r2 = r2_score(y_true, y_pred)\n",
+    "    print(f\"R2 for {model_name}: {r2:.5f}\")    \n",
+    "\n",
+    "    # Plot the predictions vs. the actual values\n",
+    "    fig, ax = plt.subplots(figsize=(12, 6))\n",
+    "    sns.lineplot(x=y_true.index, y=y_true, label='Actual Values')\n",
+    "    sns.lineplot(x=y_true.index, y=y_pred, label='Predicted Values')\n",
+    "    plt.title(f'Predictions vs. Actual Values ({model_name})')\n",
+    "    plt.xlabel('Observation')\n",
+    "    plt.ylabel('Item Count')\n",
+    "    plt.legend()\n",
+    "    plt.show()\n",
+    "\n",
+    "    scores_and_names.append((model_name, rmse))\n",
+    "\n",
+    "    "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Decision Tree"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# create a decision tree model\n",
+    "dt = DecisionTreeRegressor(random_state=42)\n",
+    "dt.fit(X_train, y_train)\n",
+    "y_pred = dt.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = dt.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Decision Tree', dt)\n",
+    "\n",
+    "#visualize the decision tree\n",
+    "feature_names = list(X.columns)\n",
+    "plt.figure(figsize=(20, 10))\n",
+    "plot_tree(dt, filled=True, feature_names=feature_names, max_depth=2, fontsize=10)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### linear regression"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Create a Linear Regression model\n",
+    "lin_reg = LinearRegression()\n",
+    "lin_reg.fit(X_train, y_train)\n",
+    "y_pred = lin_reg.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = lin_reg.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Linear Regression', lin_reg)\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### KNN"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# create a knn model\n",
+    "knn = KNeighborsRegressor(n_neighbors=5)\n",
+    "knn.fit(X_train.values, y_train.values)\n",
+    "y_pred = knn.predict(X_test.values)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = knn.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test.values, y_pred, 'K-Nearest Neighbors', knn)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### random forest"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# create a random forest model\n",
+    "rf = RandomForestRegressor()\n",
+    "rf.fit(X_train, y_train)\n",
+    "y_pred = rf.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = rf.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Random Forest', rf)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Logistic Regression"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Create a logistic regression model\n",
+    "log_reg = LogisticRegression()\n",
+    "log_reg.fit(X_train, y_train)\n",
+    "y_pred = log_reg.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = log_reg.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Logistic Regression', log_reg)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Stochastic Gradient Descent"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create a stochastic gradient descent model\n",
+    "sgd_reg = SGDRegressor()\n",
+    "sgd_reg.fit(X_train, y_train)\n",
+    "y_pred = sgd_reg.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = sgd_reg.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Stochastic Gradient Descent', sgd_reg)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### xtra tree"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create a extra trees model\n",
+    "et = ExtraTreesRegressor()\n",
+    "et.fit(X_train, y_train)\n",
+    "y_pred = et.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = et.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Extra Trees', et)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### XGBoost"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create a xgboost model\n",
+    "xgb = XGBRegressor()\n",
+    "xgb.fit(X_train, y_train)\n",
+    "y_pred = xgb.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = xgb.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'XGBoost', xgb)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### ridge regression"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create ridge regression model\n",
+    "ridge = Ridge()\n",
+    "ridge.fit(X_train, y_train)\n",
+    "y_pred = ridge.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = ridge.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Ridge Regression', ridge)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### lasso regression"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create lasso regression model\n",
+    "lasso = Lasso()\n",
+    "lasso.fit(X_train, y_train)\n",
+    "y_pred = lasso.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = lasso.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Lasso Regression', lasso)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### ARIMA"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create ARIMA model\n",
+    "arima = ARIMA(y_train, order=(1, 1, 1))\n",
+    "model = arima.fit()\n",
+    "y_pred = model.predict(start=len(y_train), end=len(y_train) + len(X_test) - 1, exog=X_test)\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'ARIMA', arima)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### ADABOOST"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#create adaboost model\n",
+    "ada = AdaBoostRegressor()\n",
+    "ada.fit(X_train, y_train)\n",
+    "y_pred = ada.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = ada.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'AdaBoost', ada)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### BayesianRidge"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# create bayesian ridge model\n",
+    "br = BayesianRidge()\n",
+    "br.fit(X_train, y_train)\n",
+    "y_pred = br.predict(X_test)\n",
+    "\n",
+    "#accuracy score\n",
+    "accuracy = br.score(X_test, y_test)\n",
+    "accuracy_percentage = accuracy * 100\n",
+    "print(f\"Accuracy: {accuracy_percentage:.2f}%\")\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Bayesian Ridge', br)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### SVM"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# create a support vector machine model\n",
+    "svm = SVC()\n",
+    "svm.fit(X_train, y_train)\n",
+    "y_pred = svm.predict(X_test)\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Support Vector Machine', svm)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### LSTM Regression Model with Keras"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from tensorflow import keras\n",
+    "from tensorflow.keras.layers import LSTM, Dense\n",
+    "\n",
+    "X_new_train = X_train.values.reshape(X_train.shape[0], 1, X_train.shape[1])\n",
+    "X_new_test = X_test.values.reshape(X_test.shape[0], 1, X_test.shape[1])\n",
+    "\n",
+    "keras_model = keras.Sequential()\n",
+    "keras_model.add(LSTM(50, activation='relu', input_shape=(1, X_new_train.shape[2])))\n",
+    "keras_model.add(Dense(1))\n",
+    "keras_model.compile(optimizer='adam', loss='mean_squared_error')\n",
+    "\n",
+    "keras_model.fit(X_new_train, y_train, epochs=10, batch_size=32, validation_split=0.2)\n",
+    "\n",
+    "y_pred = keras_model.predict(X_new_test)\n",
+    "\n",
+    "y_pred = y_pred.flatten()\n",
+    "\n",
+    "evaluate_the_model(y_test, y_pred, 'Keras Model', keras_model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Stacked model 1 - Ranodm Forest + XGBoost + Extra Tree"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rf = RandomForestRegressor()\n",
+    "rf.fit(X_train, y_train)\n",
+    "rf_pred = rf.predict(X_test)\n",
+    "\n",
+    "et = ExtraTreesRegressor()\n",
+    "et.fit(X_train, y_train)\n",
+    "et_pred = et.predict(X_test)\n",
+    "\n",
+    "xgb = XGBRegressor()\n",
+    "xgb.fit(X_train, y_train)\n",
+    "xgb_pred = xgb.predict(X_test)\n",
+    "\n",
+    "log_reg = LogisticRegression()\n",
+    "\n",
+    "stacked_data = np.column_stack((rf_pred, et_pred, xgb_pred))\n",
+    "\n",
+    "log_reg.fit(stacked_data, y_test)\n",
+    "\n",
+    "rf_new_pred = rf.predict(X_test)\n",
+    "et_new_pred = et.predict(X_test)\n",
+    "xgb_new_pred = xgb.predict(X_test)\n",
+    "\n",
+    "stacked_new_data = np.column_stack((rf_new_pred, et_new_pred, xgb_new_pred))\n",
+    "\n",
+    "final_pred = log_reg.predict(stacked_new_data)\n",
+    "\n",
+    "evaluate_the_model(y_test, final_pred, 'Stacked Model 1', log_reg)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Stacked Model 2 - SVC + KNN + Lasso"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "svm = SVC()\n",
+    "svm.fit(X_train, y_train)\n",
+    "svm_pred = svm.predict(X_test)\n",
+    "\n",
+    "knn = KNeighborsRegressor(n_neighbors=5)\n",
+    "knn.fit(X_train.values, y_train.values)\n",
+    "knn_pred = knn.predict(X_test.values)\n",
+    "\n",
+    "lasso = Lasso()\n",
+    "lasso.fit(X_train, y_train)\n",
+    "lasso_pred = lasso.predict(X_test)\n",
+    "\n",
+    "log_reg = LogisticRegression()\n",
+    "\n",
+    "stacked_data = np.column_stack((svm_pred, knn_pred, lasso_pred))\n",
+    "\n",
+    "log_reg.fit(stacked_data, y_test)\n",
+    "\n",
+    "svm_new_pred = svm.predict(X_test)\n",
+    "knn_new_pred = knn.predict(X_test.values)\n",
+    "lasso_new_pred = lasso.predict(X_test)\n",
+    "\n",
+    "stacked_new_data = np.column_stack((svm_new_pred, knn_new_pred, lasso_new_pred))\n",
+    "\n",
+    "final_pred = log_reg.predict(stacked_new_data)\n",
+    "\n",
+    "evaluate_the_model(y_test, final_pred, 'Stacked Model 2', log_reg)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Compare Models"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "results = pd.DataFrame(scores_and_names, columns=['Model', 'RMSE'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "visual_results = results.copy()\n",
+    "visual_results['RMSE'] = visual_results['RMSE'].apply(lambda x: f'{x:.3f}')\n",
+    "\n",
+    "print(visual_results)\n",
+    "\n",
+    "#plot the results\n",
+    "plt.figure(figsize=(10, 6))\n",
+    "plt.scatter(visual_results['Model'], visual_results['RMSE'])\n",
+    "plt.title('Model Comparison')\n",
+    "plt.xlabel('Model')\n",
+    "plt.ylabel('RMSE')\n",
+    "plt.xticks(rotation=90)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "results.sort_values(by='RMSE', ascending=True, inplace=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#print the results in tabel format\n",
+    "print(results)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#print the best model from the results with model name and score\n",
+    "print(f\"\\nBest Model: {results.iloc[0, 0]}\")\n",
+    "print(f\"RMSE: {results.iloc[0, 1]:.5f}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Data Visualization"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#export the final dataset to csv file\n",
+    "final_dataset.to_csv('./dashboard_dataset.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#import the final dataset\n",
+    "final_dataset = pd.read_csv('./dashboard_dataset.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#line chart\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "plt.plot(final_dataset['date'], final_dataset['revenue'])\n",
+    "plt.title('Revenue Over Time')\n",
+    "plt.xlabel('Date')\n",
+    "plt.ylabel('Revenue')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#pairplot\n",
+    "sns.pairplot(final_dataset[['item_price', 'item_cnt_month', 'revenue']])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#boxplot\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "sns.boxplot(data=final_dataset, x='item_category_name', y='revenue')\n",
+    "plt.title('Revenue by Item Category')\n",
+    "plt.xlabel('Item Category')\n",
+    "plt.ylabel('Revenue')\n",
+    "plt.xticks(rotation=90)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#scatter chart\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "sns.scatterplot(data=final_dataset, x='item_price', y='revenue')\n",
+    "plt.title('Revenue vs. Item Price')\n",
+    "plt.xlabel('Item Price')\n",
+    "plt.ylabel('Revenue')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#histogram\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "sns.histplot(data=final_dataset, x='item_price', kde=True, bins=20)\n",
+    "plt.title('Distribution of Item Count Per Month')\n",
+    "plt.xlabel('Item Count')\n",
+    "plt.ylabel('Frequency')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#area plot\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "plt.stackplot(final_dataset['date'], final_dataset['revenue'])\n",
+    "plt.title('Revenue Over Time')\n",
+    "plt.xlabel('Date')\n",
+    "plt.ylabel('Revenue')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#heatmap\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "sns.heatmap(numeric_columns.corr(), annot=True, cmap='coolwarm', fmt='.2f')\n",
+    "plt.title('Correlation Heatmap')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Time Series Plot\n",
+    "plt.figure(figsize=(10, 6))\n",
+    "final_dataset['date'] = pd.to_datetime(final_dataset['date'])\n",
+    "sns.lineplot(x='date', y='revenue', data=final_dataset)\n",
+    "plt.title('Time Series Plot of Revenue')\n",
+    "plt.xlabel('Date')\n",
+    "plt.ylabel('Revenue')\n",
+    "plt.xticks(rotation=45)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sales data per store (pie chart)\n",
+    "\n",
+    "#group the data by shop_name and sum the revenue column\n",
+    "grouped_by_shop_name = final_dataset.groupby(['shop_name']).agg({'revenue': 'sum'})\n",
+    "plt.figure(figsize=(20, 20))\n",
+    "plt.pie(grouped_by_shop_name['revenue'], labels=grouped_by_shop_name.index, autopct='%1.1f%%')\n",
+    "plt.title('Sales Data Per Store')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#mean monthly sales\n",
+    "grouped_by_month_name = final_dataset.groupby(['month_name']).agg({'revenue': 'mean'})\n",
+    "sns.lineplot(x=grouped_by_month_name.index, y=grouped_by_month_name['revenue'])\n",
+    "plt.title('Mean Monthly Sales')\n",
+    "plt.xlabel('Month')\n",
+    "plt.ylabel('Mean sales')\n",
+    "plt.xticks(rotation=45)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#mean sales compression across the years\n",
+    "grouped_by_year_num = final_dataset.groupby(['year_num']).agg({'revenue': 'mean'})\n",
+    "sns.lineplot(x=grouped_by_year_num.index, y=grouped_by_year_num['revenue'])\n",
+    "plt.title('Mean Sales Compression Across The Years')\n",
+    "plt.xlabel('Year')\n",
+    "plt.ylabel('Mean Sales')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Montly sales Mean, Median, and Standard Deviation\n",
+    "grouped_by_month_name = final_dataset.groupby(['month_name']).agg({'revenue': ['mean', 'median', 'std']})\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "sns.lineplot(x=grouped_by_month_name.index, y=grouped_by_month_name['revenue']['mean'], label='Mean')\n",
+    "sns.lineplot(x=grouped_by_month_name.index, y=grouped_by_month_name['revenue']['median'], label='Median')\n",
+    "sns.lineplot(x=grouped_by_month_name.index, y=grouped_by_month_name['revenue']['std'], label='Standard Deviation')\n",
+    "plt.title('Monthly Sales Mean, Median, and Standard Deviation')\n",
+    "plt.xlabel('Month')\n",
+    "plt.ylabel('Sales')\n",
+    "plt.xticks(rotation=45)\n",
+    "plt.legend()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#popular item categories\n",
+    "grouped_by_item_category_name = final_dataset.groupby(['item_category_name']).agg({'revenue': 'sum'})\n",
+    "grouped_by_item_category_name.sort_values(by='revenue', ascending=False, inplace=True)\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "plt.pie(grouped_by_item_category_name['revenue'][:10], labels=grouped_by_item_category_name.index[:10], autopct='%1.1f%%')\n",
+    "plt.title('Popular Item Categories')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#average sales per item category\n",
+    "grouped_by_item_category_name = final_dataset.groupby(['item_category_name']).agg({'revenue': 'mean'})\n",
+    "grouped_by_item_category_name.plot(kind='bar', figsize=(12, 6))\n",
+    "plt.title('Average Sales Per Item Category')\n",
+    "plt.xlabel('Item Category')\n",
+    "plt.ylabel('Sales')\n",
+    "plt.xticks(rotation=90)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#average monthly sales per year\n",
+    "grouped_by_year_num_and_month_name = final_dataset.groupby(['year_num', 'month_name']).agg({'revenue': 'mean'})\n",
+    "sns.lineplot(data=grouped_by_year_num_and_month_name, x='month_name', y='revenue', hue='year_num')\n",
+    "plt.title('Average Monthly Sales Per Year')\n",
+    "plt.xlabel('Month')\n",
+    "plt.ylabel('Sales')\n",
+    "plt.xticks(rotation=45)\n",
+    "plt.legend(title='Year', loc='upper right', labels=['2013', '2014', '2015'])\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#average store sales\n",
+    "grouped_by_shop_name = final_dataset.groupby(['shop_name']).agg({'revenue': 'mean'})\n",
+    "grouped_by_shop_name.plot(kind='bar', figsize=(12, 6))\n",
+    "plt.title('Average Store Sales')\n",
+    "plt.xlabel('Store')\n",
+    "plt.ylabel('Sales')\n",
+    "plt.xticks(rotation=90)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#average store sales - year wise\n",
+    "grouped_by_shop_name_and_year_num = final_dataset.groupby(['shop_name', 'year_num']).agg({'revenue': 'mean'})\n",
+    "sns.lineplot(data=grouped_by_shop_name_and_year_num, markers=True, dashes=False, x='shop_name', y='revenue', hue='year_num')\n",
+    "plt.title('Average Store Sales - Year Wise')\n",
+    "plt.xlabel('Store')\n",
+    "plt.ylabel('Sales')\n",
+    "plt.legend(title='Year', loc='upper left', bbox_to_anchor=(1, 1))\n",
+    "plt.xticks(rotation=90)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#relationship between item price and revenue\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "sns.scatterplot(data=final_dataset, x='item_price', y='revenue')\n",
+    "plt.title('Relationship Between Item Price and Revenue')\n",
+    "plt.xlabel('Item Price')\n",
+    "plt.ylabel('Revenue')\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#relationship between item price and revenue - year wise\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "sns.scatterplot(data=final_dataset, x='item_price', y='revenue', hue='year_num')\n",
+    "plt.title('Relationship Between Item Price and Revenue - Year Wise')\n",
+    "plt.xlabel('Item Price')\n",
+    "plt.ylabel('Revenue')\n",
+    "plt.legend(title='Year', loc='upper left', bbox_to_anchor=(1, 1))\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#relationship: month of year vs sales\n",
+    "grouped_by_month_name = final_dataset.groupby(['month_name']).agg({'revenue': 'sum'})\n",
+    "sns.lineplot(x=grouped_by_month_name.index, y=grouped_by_month_name['revenue'])\n",
+    "plt.title('Month of Year vs Sales')\n",
+    "plt.xlabel('Month')\n",
+    "plt.ylabel('Sales')\n",
+    "plt.xticks(rotation=45)\n",
+    "plt.show()"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "base",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.5"
+  },
+  "orig_nbformat": 4
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
